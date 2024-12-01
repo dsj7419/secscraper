@@ -1,4 +1,5 @@
 """Test configuration and fixtures."""
+
 import json
 import os
 import pytest
@@ -28,11 +29,13 @@ def mock_settings(monkeypatch, tmp_path):
     """Mock settings for tests."""
     monkeypatch.setenv("TESTING", "true")
     monkeypatch.setenv("SEC_USER_AGENT_EMAIL", "test@example.com")
-    
+
     # Set up temp directories for testing
     monkeypatch.setattr("config.settings.Settings.BASE_DATA_DIR", tmp_path)
     monkeypatch.setattr("config.settings.Settings.RAW_DATA_DIR", tmp_path / "raw")
-    monkeypatch.setattr("config.settings.Settings.PROCESSED_DATA_DIR", tmp_path / "processed")
+    monkeypatch.setattr(
+        "config.settings.Settings.PROCESSED_DATA_DIR", tmp_path / "processed"
+    )
     monkeypatch.setattr("config.settings.Settings.LOG_DIR", tmp_path / "logs")
 
 

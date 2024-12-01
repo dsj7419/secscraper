@@ -42,9 +42,7 @@ class Settings(BaseSettings):
     RETRY_BACKOFF_FACTOR: float = 2.0
 
     model_config = SettingsConfigDict(
-        env_file=".env",
-        env_file_encoding="utf-8",
-        extra="ignore"
+        env_file=".env", env_file_encoding="utf-8", extra="ignore"
     )
 
     def create_directories(self) -> None:
