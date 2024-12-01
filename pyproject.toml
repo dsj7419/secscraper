@@ -34,7 +34,7 @@ dev = [
     "sphinx>=5.3.0",
     "sphinx_rtd_theme>=1.0.0",
     "coverage[toml]>=6.5.0",
-    "pandas-stubs>=2.2.0.230105",
+    "pandas-stubs>=2.2.3.241126",
 ]
 
 [build-system]
@@ -45,9 +45,6 @@ build-backend = "setuptools.build_meta"
 line-length = 88
 target-version = ["py311"]
 
-[tool.ruff]
-line-length = 88
-
 [tool.ruff.lint]
 select = ["E", "W", "F", "C", "B"]
 ignore = ["F841"]
@@ -56,8 +53,6 @@ fixable = ["E501", "C401", "B904"]
 [tool.mypy]
 python_version = "3.11"
 plugins = ["pydantic.mypy"]
-warn_return_any = true
-warn_unused_configs = true
 disallow_untyped_defs = true
 disallow_incomplete_defs = true
 check_untyped_defs = true
@@ -65,21 +60,14 @@ disallow_untyped_decorators = true
 no_implicit_optional = true
 warn_redundant_casts = true
 warn_unused_ignores = true
-warn_no_return = true
-warn_unreachable = true
+warn_return_any = true
 strict_optional = true
-namespace_packages = true
-explicit_package_bases = true
 
 [tool.pytest.ini_options]
 minversion = "7.4"
 addopts = "-ra -q --cov=src"
 testpaths = ["tests"]
-asyncio_mode = "function"  # Set explicit asyncio mode
-filterwarnings = [
-    "ignore::DeprecationWarning:pydantic.*:",
-    "ignore::pytest.PytestDeprecationWarning",
-]
+asyncio_mode = "auto"
 
 [tool.pre-commit]
 repos = [
