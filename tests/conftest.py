@@ -6,10 +6,7 @@ import pytest
 import aiohttp
 from datetime import datetime
 from pathlib import Path
-
-# Set test environment variables
-os.environ["TESTING"] = "true"
-os.environ["SEC_USER_AGENT_EMAIL"] = "test@example.com"
+from config.settings import reset_settings
 
 
 def pytest_configure(config):
@@ -27,16 +24,18 @@ def pytest_configure(config):
 @pytest.fixture(autouse=True)
 def mock_settings(monkeypatch, tmp_path):
     """Mock settings for tests."""
+    # Reset settings singleton
+    reset_settings()
+
+    # Set up test environment
     monkeypatch.setenv("TESTING", "true")
     monkeypatch.setenv("SEC_USER_AGENT_EMAIL", "test@example.com")
+    monkeypatch.setenv("BASE_DATA_DIR", str(tmp_path))
 
-    # Set up temp directories for testing
-    monkeypatch.setattr("config.settings.Settings.BASE_DATA_DIR", tmp_path)
-    monkeypatch.setattr("config.settings.Settings.RAW_DATA_DIR", tmp_path / "raw")
-    monkeypatch.setattr(
-        "config.settings.Settings.PROCESSED_DATA_DIR", tmp_path / "processed"
-    )
-    monkeypatch.setattr("config.settings.Settings.LOG_DIR", tmp_path / "logs")
+    yield
+
+    # Clean up after test
+    reset_settings()
 
 
 @pytest.fixture

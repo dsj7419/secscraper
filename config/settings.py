@@ -25,12 +25,6 @@ class Settings(BaseSettings):
     MAX_RETRIES: int = 5  # Maximum number of retry attempts
     REQUEST_TIMEOUT_SECONDS: int = 15  # Request timeout in seconds
 
-    # Paths
-    BASE_DATA_DIR: Path = Path("data")
-    RAW_DATA_DIR: Path = BASE_DATA_DIR / "raw"
-    PROCESSED_DATA_DIR: Path = BASE_DATA_DIR / "processed"
-    LOG_DIR: Path = BASE_DATA_DIR / "logs"
-
     # Database
     DATABASE_URL: Optional[str] = None
 
@@ -41,8 +35,25 @@ class Settings(BaseSettings):
     # Scraping Configuration
     RETRY_BACKOFF_FACTOR: float = 2.0
 
+    # Path Configuration - Set as properties for better testing
+    @property
+    def BASE_DATA_DIR(self) -> Path:
+        return Path(os.getenv("BASE_DATA_DIR", "data"))
+
+    @property
+    def RAW_DATA_DIR(self) -> Path:
+        return self.BASE_DATA_DIR / "raw"
+
+    @property
+    def PROCESSED_DATA_DIR(self) -> Path:
+        return self.BASE_DATA_DIR / "processed"
+
+    @property
+    def LOG_DIR(self) -> Path:
+        return self.BASE_DATA_DIR / "logs"
+
     model_config = SettingsConfigDict(
-        env_file=".env", env_file_encoding="utf-8", extra="ignore"
+        env_file=".env", env_file_encoding="utf-8", case_sensitive=True, extra="ignore"
     )
 
     def create_directories(self) -> None:
@@ -59,11 +70,23 @@ class Settings(BaseSettings):
             directory.mkdir(parents=True, exist_ok=True)
 
 
+# Global settings instance
+_settings: Optional[Settings] = None
+
+
 @lru_cache()
 def get_settings() -> Settings:
     """Get cached settings instance."""
-    # For testing, use test.env if it exists and we're in test mode
-    env_file = "test.env" if os.getenv("TESTING") else ".env"
-    settings = Settings(_env_file=env_file)
-    settings.create_directories()
-    return settings
+    global _settings
+    if _settings is None:
+        env_file = "test.env" if os.getenv("TESTING") else ".env"
+        _settings = Settings(_env_file=env_file)
+        _settings.create_directories()
+    return _settings
+
+
+def reset_settings() -> None:
+    """Reset settings - useful for testing."""
+    global _settings
+    _settings = None
+    get_settings.cache_clear()
