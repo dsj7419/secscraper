@@ -1,5 +1,4 @@
 name: CI/CD Pipeline
-
 on:
   push:
     branches:
@@ -11,7 +10,11 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
-
+    env:
+      TESTING: "true"
+      SEC_USER_AGENT_EMAIL: "test@example.com"
+      NASDAQ_API_KEY: "test_key"
+    
     steps:
     - name: Checkout code
       uses: actions/checkout@v3
@@ -26,6 +29,12 @@ jobs:
         python -m pip install --upgrade pip
         pip install .[dev]
 
+    - name: Create test environment file
+      run: |
+        echo "SEC_USER_AGENT_EMAIL=test@example.com" > test.env
+        echo "NASDAQ_API_KEY=test_key" >> test.env
+        echo "LOG_LEVEL=DEBUG" >> test.env
+
     - name: Run Ruff
       run: ruff check src
 
@@ -37,7 +46,7 @@ jobs:
 
     - name: Run tests with coverage
       run: pytest --cov=src --cov-report=xml
-
+      
     - name: Upload coverage report
       uses: actions/upload-artifact@v3
       with:

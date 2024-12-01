@@ -1,7 +1,39 @@
+"""Test configuration and fixtures."""
 import json
+import os
 import pytest
 import aiohttp
 from datetime import datetime
+from pathlib import Path
+
+# Set test environment variables
+os.environ["TESTING"] = "true"
+os.environ["SEC_USER_AGENT_EMAIL"] = "test@example.com"
+
+
+def pytest_configure(config):
+    """Configure pytest environment."""
+    # Create test.env file if it doesn't exist
+    test_env = Path("test.env")
+    if not test_env.exists():
+        test_env.write_text(
+            "SEC_USER_AGENT_EMAIL=test@example.com\n"
+            "NASDAQ_API_KEY=test_key\n"
+            "LOG_LEVEL=DEBUG\n"
+        )
+
+
+@pytest.fixture(autouse=True)
+def mock_settings(monkeypatch, tmp_path):
+    """Mock settings for tests."""
+    monkeypatch.setenv("TESTING", "true")
+    monkeypatch.setenv("SEC_USER_AGENT_EMAIL", "test@example.com")
+    
+    # Set up temp directories for testing
+    monkeypatch.setattr("config.settings.Settings.BASE_DATA_DIR", tmp_path)
+    monkeypatch.setattr("config.settings.Settings.RAW_DATA_DIR", tmp_path / "raw")
+    monkeypatch.setattr("config.settings.Settings.PROCESSED_DATA_DIR", tmp_path / "processed")
+    monkeypatch.setattr("config.settings.Settings.LOG_DIR", tmp_path / "logs")
 
 
 @pytest.fixture
@@ -99,6 +131,5 @@ def mock_apis(monkeypatch, mock_sec_response, mock_nasdaq_data):
         async def close(self):
             self.closed = True
 
-    # Patch aiohttp.ClientSession and the ClientSession used in base_client
     monkeypatch.setattr("aiohttp.ClientSession", MockClientSession)
     monkeypatch.setattr("src.clients.base_client.ClientSession", MockClientSession)

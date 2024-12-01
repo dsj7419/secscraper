@@ -3,10 +3,12 @@ Configuration management for the SEC Earnings Scraper.
 Uses environment variables with pydantic for validation.
 """
 
+import os
 from pathlib import Path
 from typing import Optional
-from pydantic_settings import BaseSettings
 from functools import lru_cache
+from pydantic import ConfigDict
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
@@ -39,9 +41,11 @@ class Settings(BaseSettings):
     # Scraping Configuration
     RETRY_BACKOFF_FACTOR: float = 2.0
 
-    class Config:
-        env_file = ".env"
-        env_file_encoding = "utf-8"
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        env_file_encoding="utf-8",
+        extra="ignore"
+    )
 
     def create_directories(self) -> None:
         """Create necessary directories if they don't exist."""
@@ -60,6 +64,8 @@ class Settings(BaseSettings):
 @lru_cache()
 def get_settings() -> Settings:
     """Get cached settings instance."""
-    settings = Settings()
+    # For testing, use test.env if it exists and we're in test mode
+    env_file = "test.env" if os.getenv("TESTING") else ".env"
+    settings = Settings(_env_file=env_file)
     settings.create_directories()
     return settings
