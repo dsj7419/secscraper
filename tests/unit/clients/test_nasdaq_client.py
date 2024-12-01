@@ -1,16 +1,20 @@
 """Tests for NASDAQ API client."""
+
 import pytest
 from datetime import datetime
 from src.clients.nasdaq_client import NASDAQClient
 from src.utils.date_utils import TradingCalendar
 
+
 @pytest.mark.asyncio
 async def test_get_earnings_calendar(mock_nasdaq_data, monkeypatch):
     """Test fetching earnings calendar."""
+
     def mock_is_trading_day(*args, **kwargs):
         return True
+
     monkeypatch.setattr(TradingCalendar, "is_trading_day", mock_is_trading_day)
-    
+
     async with NASDAQClient() as client:
         date = datetime.now()
         response = await client.get_earnings_calendar(date)

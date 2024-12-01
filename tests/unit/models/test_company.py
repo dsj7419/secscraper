@@ -1,6 +1,7 @@
 import pytest
 from src.models.company import Company, Exchange, CompanyStatus
 
+
 def test_company_model_validation():
     """Test company model validation."""
     # Valid company data
@@ -9,7 +10,7 @@ def test_company_model_validation():
         "symbol": "AAPL",
         "name": "Apple Inc.",
         "exchange": Exchange.NASDAQ,
-        "status": CompanyStatus.ACTIVE
+        "status": CompanyStatus.ACTIVE,
     }
     company = Company(**valid_data)
     assert company.cik == "0000320193"

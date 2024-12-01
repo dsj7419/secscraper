@@ -46,10 +46,11 @@ line-length = 88
 target-version = ["py311"]
 
 [tool.ruff]
-select = ["E", "W", "F", "I", "C", "B"]
-ignore = []
+select = ["E", "W", "F", "C", "B"]
+ignore = ["F841"]
 line-length = 88
-fixable = ["ALL"]
+fixable = ["E501", "C401", "B904"]
+
 
 [tool.mypy]
 python_version = "3.11"

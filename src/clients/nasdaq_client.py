@@ -1,14 +1,15 @@
 """
 NASDAQ API client implementation.
 """
-from datetime import datetime, date
-from typing import Dict, Any, Optional
-import os
 
-from src.clients.base_client import BaseAPIClient
-from src.utils.logging_utils import setup_logger, log_api_call
-from src.utils.date_utils import TradingCalendar
+import os
+from datetime import date
+from typing import Any, Dict, Optional
+
 from config.settings import get_settings
+from src.clients.base_client import BaseAPIClient
+from src.utils.date_utils import TradingCalendar
+from src.utils.logging_utils import log_api_call, setup_logger
 
 settings = get_settings()
 logger = setup_logger(__name__)
@@ -16,7 +17,7 @@ logger = setup_logger(__name__)
 
 class NASDAQClient(BaseAPIClient):
     """Client for interacting with NASDAQ APIs."""
-    
+
     def __init__(self) -> None:
         """Initialize NASDAQ API client."""
         super().__init__(
@@ -25,11 +26,11 @@ class NASDAQClient(BaseAPIClient):
                 "User-Agent": "Mozilla/5.0",
                 "Accept": "application/json, text/plain, */*",
             },
-            rate_limit_seconds=settings.NASDAQ_RATE_LIMIT_SECONDS
+            rate_limit_seconds=settings.NASDAQ_RATE_LIMIT_SECONDS,
         )
         self.trading_calendar = TradingCalendar()
-        self.is_test = bool(os.getenv('TESTING', False))
-        
+        self.is_test = bool(os.getenv("TESTING", False))
+
         if settings.NASDAQ_API_KEY:
             self.headers["Authorization"] = f"Bearer {settings.NASDAQ_API_KEY}"
 
@@ -44,7 +45,7 @@ class NASDAQClient(BaseAPIClient):
                         "eps_estimate": "1.43",
                         "eps_actual": "1.52",
                         "time": "AMC",
-                        "date": date_.strftime("%Y-%m-%d")
+                        "date": date_.strftime("%Y-%m-%d"),
                     }
                 ]
             }
@@ -56,18 +57,17 @@ class NASDAQClient(BaseAPIClient):
         if not self.trading_calendar.is_trading_day(date_):
             logger.warning(f"{date_} is not a trading day")
             return {"data": {"rows": []}}
-        
+
         if self.is_test:
             return self._get_mock_data(date_)
-            
-        endpoint = f"calendar/earnings"
+
+        endpoint = "calendar/earnings"
         params = {"date": date_.strftime("%Y-%m-%d")}
-        
+
         return await self.get(endpoint, params=params)
 
     async def _process_earnings_response(
-        self,
-        response: Dict[str, Any]
+        self, response: Dict[str, Any]
     ) -> list[Dict[str, Any]]:
         """Process earnings calendar response data."""
         try:
@@ -80,11 +80,8 @@ class NASDAQClient(BaseAPIClient):
     async def get_company_info(self, symbol: str) -> Optional[Dict[str, Any]]:
         """Fetch detailed company information."""
         if self.is_test:
-            return {
-                "symbol": symbol,
-                "status": "Active"
-            }
-            
+            return {"symbol": symbol, "status": "Active"}
+
         endpoint = f"quote/{symbol}/info"
         try:
             return await self.get(endpoint)
@@ -94,17 +91,15 @@ class NASDAQClient(BaseAPIClient):
 
     @log_api_call(logger)
     async def get_historical_earnings(
-        self,
-        symbol: str,
-        limit: int = 4
+        self, symbol: str, limit: int = 4
     ) -> list[Dict[str, Any]]:
         """Fetch historical earnings data for a company."""
         if self.is_test:
             return []
-            
+
         endpoint = f"company/{symbol}/earnings-history"
         params = {"limit": limit}
-        
+
         response = await self.get(endpoint, params=params)
         return await self._process_earnings_response(response)
 
@@ -112,7 +107,7 @@ class NASDAQClient(BaseAPIClient):
         """Validate if a symbol exists and is active."""
         if self.is_test:
             return True
-            
+
         try:
             info = await self.get_company_info(symbol)
             return info is not None and info.get("status") == "Active"

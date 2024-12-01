@@ -1,14 +1,16 @@
 """
 Base HTTP client with advanced error handling and retry logic.
 """
-from typing import Any, Dict, Optional
+
 import asyncio
-from aiohttp import ClientSession, ClientResponse, TCPConnector, ClientTimeout
+from typing import Any, Dict, Optional
+
+from aiohttp import ClientResponse, ClientSession, ClientTimeout, TCPConnector
 from tenacity import (
     retry,
+    retry_if_exception_type,
     stop_after_attempt,
     wait_exponential,
-    retry_if_exception_type,
 )
 
 from config.settings import get_settings
@@ -57,14 +59,13 @@ class BaseAPIClient:
         if self._session is None:
             timeout = ClientTimeout(total=settings.REQUEST_TIMEOUT_SECONDS)
             connector = TCPConnector(
-                limit=settings.MAX_CONCURRENT_REQUESTS,
-                force_close=True
+                limit=settings.MAX_CONCURRENT_REQUESTS, force_close=True
             )
             self._session = ClientSession(
                 connector=connector,
                 headers=self.headers,
                 raise_for_status=True,
-                timeout=timeout
+                timeout=timeout,
             )
 
     async def cleanup(self) -> None:
@@ -75,15 +76,13 @@ class BaseAPIClient:
 
     @retry(
         stop=stop_after_attempt(settings.MAX_RETRIES),
-        wait=wait_exponential(
-            multiplier=settings.RETRY_BACKOFF_FACTOR,
-            min=1,
-            max=60
-        ),
+        wait=wait_exponential(multiplier=settings.RETRY_BACKOFF_FACTOR, min=1, max=60),
         retry=retry_if_exception_type(APIError),
-        reraise=True  # Add this line
+        reraise=True,
     )
-    async def _make_request(self, method: str, endpoint: str, **kwargs: Any) -> Dict[str, Any]:
+    async def _make_request(
+        self, method: str, endpoint: str, **kwargs: Any
+    ) -> Dict[str, Any]:
         """
         Make an HTTP request with retry logic and error handling.
 
@@ -103,14 +102,13 @@ class BaseAPIClient:
             await self.setup()
 
         url = f"{self.base_url}/{endpoint.lstrip('/')}"
-        
+
         async with self._lock:
-            # Implement rate limiting
             now = asyncio.get_event_loop().time()
             time_since_last_request = now - self._last_request_time
             if time_since_last_request < self.rate_limit_seconds:
                 await asyncio.sleep(self.rate_limit_seconds - time_since_last_request)
-            
+
             try:
                 async with self._session.request(
                     method,
@@ -118,28 +116,22 @@ class BaseAPIClient:
                     **kwargs,
                 ) as response:
                     self._last_request_time = asyncio.get_event_loop().time()
-                    
+
                     if response.status == 429:
                         raise RateLimitError(
                             "Rate limit exceeded",
                             status_code=429,
                             response_body=await response.text(),
                         )
-                    
+
                     return await self._handle_response(response)
-                    
+
             except asyncio.TimeoutError as e:
                 logger.error(f"Request timeout: {str(e)}")
-                raise APIError(
-                    f"Request to {url} timed out",
-                    original_error=e
-                )
+                raise APIError(f"Request to {url} timed out") from e
             except Exception as e:
                 logger.error(f"Request failed: {str(e)}", exc_info=True)
-                raise APIError(
-                    f"Request to {url} failed: {str(e)}",
-                    original_error=e
-                )
+                raise APIError(f"Request to {url} failed: {str(e)}") from e
 
     async def _handle_response(self, response: ClientResponse) -> Dict[str, Any]:
         """
@@ -156,20 +148,16 @@ class BaseAPIClient:
         """
         try:
             data = await response.json()
-            # Add any common response validation here
             return data
         except ValueError as e:
             raise APIError(
                 "Failed to parse JSON response",
                 status_code=response.status,
                 response_body=await response.text(),
-                original_error=e,
-            )
+            ) from e
 
     async def get(self, endpoint: str, **kwargs: Any) -> Dict[str, Any]:
-        """Make a GET request."""
         return await self._make_request("GET", endpoint, **kwargs)
 
     async def post(self, endpoint: str, **kwargs: Any) -> Dict[str, Any]:
-        """Make a POST request."""
         return await self._make_request("POST", endpoint, **kwargs)

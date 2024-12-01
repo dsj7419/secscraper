@@ -3,6 +3,7 @@ from decimal import Decimal
 from datetime import datetime
 from src.models.earnings import EarningsReport, MarketSession, EarningsStatus
 
+
 def test_earnings_report_model():
     """Test earnings report model."""
     data = {
@@ -12,7 +13,7 @@ def test_earnings_report_model():
         "eps_estimate": Decimal("1.43"),
         "eps_actual": Decimal("1.52"),
         "market_session": MarketSession.AFTER_MARKET,
-        "status": EarningsStatus.REPORTED
+        "status": EarningsStatus.REPORTED,
     }
     report = EarningsReport(**data)
     # Create a copy and calculate surprises

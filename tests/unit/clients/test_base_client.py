@@ -1,11 +1,15 @@
 """Test base client context management."""
+
 import pytest
 from src.clients.base_client import BaseAPIClient
 
+
 class MockClient(BaseAPIClient):
     """Test implementation of BaseAPIClient."""
+
     def __init__(self):
         super().__init__("https://test.com")
+
 
 @pytest.mark.asyncio
 async def test_client_context_management():
@@ -16,6 +20,7 @@ async def test_client_context_management():
 
     # Session should be closed after context exit
     assert client._session is None
+
 
 @pytest.mark.asyncio
 async def test_multiple_clients():

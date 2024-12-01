@@ -1,6 +1,7 @@
 """
 Test script to verify configuration and basic functionality.
 """
+
 import asyncio
 import sys
 import os
@@ -10,7 +11,7 @@ from datetime import datetime, timedelta
 from contextlib import asynccontextmanager
 
 # Set test mode
-os.environ['TESTING'] = 'true'
+os.environ["TESTING"] = "true"
 
 # Add project root to Python path
 sys.path.append(str(Path(__file__).parent.parent))
@@ -32,16 +33,16 @@ settings = get_settings()
 async def test_directory_structure():
     """Test data directory structure creation."""
     logger.info("Testing directory structure...")
-    
+
     dirs = [
         settings.RAW_DATA_DIR / "sec",
         settings.RAW_DATA_DIR / "nasdaq",
         settings.PROCESSED_DATA_DIR / "companies",
         settings.PROCESSED_DATA_DIR / "earnings" / "daily",
         settings.PROCESSED_DATA_DIR / "earnings" / "master",
-        settings.LOG_DIR
+        settings.LOG_DIR,
     ]
-    
+
     for dir_path in dirs:
         dir_path.mkdir(parents=True, exist_ok=True)
         logger.info(f"Directory verified: {dir_path}")
@@ -51,7 +52,7 @@ async def test_directory_structure():
 async def test_sec_client():
     """Test SEC API client."""
     logger.info("Testing SEC API client...")
-    
+
     async with SECClient() as client:
         try:
             data = await client.get_company_tickers()
@@ -66,7 +67,7 @@ async def test_sec_client():
 async def test_nasdaq_client():
     """Test NASDAQ API client."""
     logger.info("Testing NASDAQ API client...")
-    
+
     async with NASDAQClient() as client:
         try:
             yesterday = datetime.now() - timedelta(days=1)
@@ -84,22 +85,20 @@ async def test_nasdaq_client():
 async def test_company_repository():
     """Test company repository."""
     logger.info("Testing company repository...")
-    
+
     file_path = settings.PROCESSED_DATA_DIR / "companies" / "companies.csv"
-    
+
     # Ensure directory exists
     file_path.parent.mkdir(parents=True, exist_ok=True)
-    
+
     # Create fresh repository for test
     if file_path.exists():
         file_path.unlink()
-    
+
     repository = CSVRepository(
-        file_path=file_path,
-        model_class=Company,
-        key_field="cik"
+        file_path=file_path, model_class=Company, key_field="cik"
     )
-    
+
     try:
         # Create test company
         test_company = Company(
@@ -109,22 +108,22 @@ async def test_company_repository():
             exchange=Exchange.NASDAQ,
             status=CompanyStatus.ACTIVE,
             sector="Technology",
-            industry="Consumer Electronics"
+            industry="Consumer Electronics",
         )
-        
+
         logger.info(f"Created test company: {test_company.model_dump_json()}")
-        
+
         # Test add
         await repository.add(test_company)
         logger.info("Added company to repository")
-        
+
         # Debug: Check raw CSV content
         if file_path.exists():
             df = pd.read_csv(file_path)
             logger.info(f"CSV content after add:\n{df.to_string()}")
         else:
             logger.error("CSV file doesn't exist after add!")
-        
+
         # Test retrieve
         retrieved = await repository.get("0000320193")
         if retrieved:
@@ -135,18 +134,20 @@ async def test_company_repository():
                 df = pd.read_csv(file_path)
                 logger.error(f"Current CSV content:\n{df.to_string()}")
             return False
-            
+
         # Verify all fields match
-        fields_match = all([
-            retrieved.cik == test_company.cik,
-            retrieved.symbol == test_company.symbol,
-            retrieved.name == test_company.name,
-            retrieved.exchange == test_company.exchange,
-            retrieved.status == test_company.status,
-            retrieved.sector == test_company.sector,
-            retrieved.industry == test_company.industry
-        ])
-        
+        fields_match = all(
+            [
+                retrieved.cik == test_company.cik,
+                retrieved.symbol == test_company.symbol,
+                retrieved.name == test_company.name,
+                retrieved.exchange == test_company.exchange,
+                retrieved.status == test_company.status,
+                retrieved.sector == test_company.sector,
+                retrieved.industry == test_company.industry,
+            ]
+        )
+
         if fields_match:
             logger.info("Successfully tested company repository")
             return True
@@ -155,7 +156,7 @@ async def test_company_repository():
             logger.error(f"Original: {test_company.model_dump()}")
             logger.error(f"Retrieved: {retrieved.model_dump()}")
             return False
-            
+
     except Exception as e:
         logger.error(f"Company repository test failed: {str(e)}", exc_info=True)
         return False
@@ -166,26 +167,26 @@ async def main():
     try:
         # Test directory structure
         struct_ok = await test_directory_structure()
-        
+
         # Test API clients
         sec_ok = await test_sec_client()
         nasdaq_ok = await test_nasdaq_client()
-        
+
         # Test repository
         repo_ok = await test_company_repository()
-        
+
         # Report results
         logger.info("\nTest Results:")
         logger.info(f"Directory Structure: {'OK' if struct_ok else 'FAILED'}")
         logger.info(f"SEC API: {'OK' if sec_ok else 'FAILED'}")
         logger.info(f"NASDAQ API: {'OK' if nasdaq_ok else 'FAILED'}")
         logger.info(f"Repository: {'OK' if repo_ok else 'FAILED'}")
-        
+
         if not all([struct_ok, sec_ok, nasdaq_ok, repo_ok]):
             sys.exit(1)
-            
+
         logger.info("\nAll tests passed successfully!")
-        
+
     except Exception as e:
         logger.error(f"Setup test failed: {str(e)}")
         sys.exit(1)

@@ -3,6 +3,7 @@ from src.clients.sec_client import SECClient
 from src.utils.exceptions import APIError
 from src.clients.base_client import settings
 
+
 @pytest.mark.asyncio
 async def test_get_company_tickers():
     """Test fetching company tickers from SEC."""
@@ -15,12 +16,15 @@ async def test_get_company_tickers():
         assert response_cik == "0000320193"
         assert response["0"]["ticker"] == "AAPL"
 
+
 @pytest.mark.asyncio
 async def test_validate_cik(monkeypatch):
     """Test CIK validation."""
     async with SECClient() as client:
+
         async def mock_valid_facts(*args, **kwargs):
             return {"valid": "response"}
+
         async def mock_invalid_facts(*args, **kwargs):
             raise APIError("Invalid CIK")
 
@@ -29,6 +33,7 @@ async def test_validate_cik(monkeypatch):
 
         monkeypatch.setattr(client, "get_company_facts", mock_invalid_facts)
         assert await client.validate_cik("invalid") == False
+
 
 @pytest.mark.asyncio
 async def test_format_cik():
@@ -39,6 +44,7 @@ async def test_format_cik():
         with pytest.raises(ValueError):
             client.format_cik("invalid")
 
+
 @pytest.mark.asyncio
 async def test_client_cleanup():
     """Test proper client session cleanup."""
@@ -47,6 +53,7 @@ async def test_client_cleanup():
         assert client._session is not None
         assert not client._session.closed
     assert client._session is None
+
 
 @pytest.mark.asyncio
 async def test_client_error_handling(monkeypatch):
