@@ -81,13 +81,9 @@ class BaseAPIClient:
             max=60
         ),
         retry=retry_if_exception_type(APIError),
+        reraise=True  # Add this line
     )
-    async def _make_request(
-        self,
-        method: str,
-        endpoint: str,
-        **kwargs: Any,
-    ) -> Dict[str, Any]:
+    async def _make_request(self, method: str, endpoint: str, **kwargs: Any) -> Dict[str, Any]:
         """
         Make an HTTP request with retry logic and error handling.
 
