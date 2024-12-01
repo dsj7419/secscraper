@@ -3,7 +3,7 @@ Base HTTP client with advanced error handling and retry logic.
 """
 
 import asyncio
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, cast
 
 from aiohttp import ClientResponse, ClientSession, ClientTimeout, TCPConnector
 from tenacity import (
@@ -101,6 +101,8 @@ class BaseAPIClient:
         if self._session is None:
             await self.setup()
 
+        assert self._session is not None
+
         url = f"{self.base_url}/{endpoint.lstrip('/')}"
 
         async with self._lock:
@@ -148,7 +150,7 @@ class BaseAPIClient:
         """
         try:
             data = await response.json()
-            return data
+            return cast(Dict[str, Any], data)
         except ValueError as e:
             raise APIError(
                 "Failed to parse JSON response",

@@ -23,7 +23,10 @@ T = TypeVar("T", bound=BaseModel)
 
 def clean_nan_values(data: Dict[str, Any]) -> Dict[str, Any]:
     """Convert NaN values to None."""
-    return {key: None if pd.isna(value) else value for key, value in data.items()}
+    cleaned: Dict[str, Any] = {}
+    for key, value in data.items():
+        cleaned[key] = None if pd.isna(value) else value
+    return cleaned
 
 
 class CSVRepository(Repository[T], Generic[T]):
@@ -250,7 +253,8 @@ class CSVRepository(Repository[T], Generic[T]):
             return False
 
         id_formatted = str(id_).zfill(10)
-        return df[df[self.key_field] == id_formatted].shape[0] > 0
+        matches = df[df[self.key_field] == id_formatted].shape[0]
+        return matches > 0
 
 
 class TimeRangeCSVRepository(CSVRepository[T], TimeRangeRepository[T], Generic[T]):

@@ -1,10 +1,8 @@
-"""
-NASDAQ API client implementation.
-"""
+"""NASDAQ API client implementation."""
 
 import os
 from datetime import date
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional, cast
 
 from config.settings import get_settings
 from src.clients.base_client import BaseAPIClient
@@ -30,7 +28,6 @@ class NASDAQClient(BaseAPIClient):
         )
         self.trading_calendar = TradingCalendar()
         self.is_test = bool(os.getenv("TESTING", False))
-
         if settings.NASDAQ_API_KEY:
             self.headers["Authorization"] = f"Bearer {settings.NASDAQ_API_KEY}"
 
@@ -63,15 +60,15 @@ class NASDAQClient(BaseAPIClient):
 
         endpoint = "calendar/earnings"
         params = {"date": date_.strftime("%Y-%m-%d")}
-
         return await self.get(endpoint, params=params)
 
     async def _process_earnings_response(
         self, response: Dict[str, Any]
-    ) -> list[Dict[str, Any]]:
+    ) -> List[Dict[str, Any]]:
         """Process earnings calendar response data."""
         try:
-            return response.get("data", {}).get("rows", [])
+            rows = response.get("data", {}).get("rows", [])
+            return cast(List[Dict[str, Any]], rows)
         except AttributeError as e:
             logger.error("Invalid response format", exc_info=True)
             raise ValueError("Invalid response format") from e
@@ -92,14 +89,13 @@ class NASDAQClient(BaseAPIClient):
     @log_api_call(logger)
     async def get_historical_earnings(
         self, symbol: str, limit: int = 4
-    ) -> list[Dict[str, Any]]:
+    ) -> List[Dict[str, Any]]:
         """Fetch historical earnings data for a company."""
         if self.is_test:
             return []
 
         endpoint = f"company/{symbol}/earnings-history"
         params = {"limit": limit}
-
         response = await self.get(endpoint, params=params)
         return await self._process_earnings_response(response)
 

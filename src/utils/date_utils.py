@@ -6,44 +6,47 @@ from datetime import date, datetime, timedelta
 from typing import Generator, Optional
 
 import pandas as pd
-from pandas.tseries.holiday import USFederalHolidayCalendar
+from pandas.tseries.holiday import (
+    USFederalHolidayCalendar,
+)
 
 
 class TradingCalendar:
     """Handles trading calendar related operations."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.calendar = USFederalHolidayCalendar()
 
-    def is_trading_day(self, date_: date) -> bool:
+    def is_trading_day(self, date_obj: date) -> bool:
         """
         Check if a given date is a trading day.
 
         Args:
-            date_: Date to check
+            date_obj: Date to check
 
         Returns:
             bool: True if it's a trading day, False otherwise
         """
         # Check if it's a weekend
-        if date_.weekday() >= 5:
+        if date_obj.weekday() >= 5:
             return False
 
-        # Check if it's a holiday
-        holidays = self.calendar.holidays(start=date_, end=date_)
+        # Check if it's a holiday - convert to datetime for holiday check
+        dt = datetime.combine(date_obj, datetime.min.time())
+        holidays = self.calendar.holidays(dt, dt, return_name=False)
         return len(holidays) == 0
 
-    def next_trading_day(self, date_: date) -> date:
+    def next_trading_day(self, date_obj: date) -> date:
         """
         Get the next trading day after the given date.
 
         Args:
-            date_: Starting date
+            date_obj: Starting date
 
         Returns:
             date: Next trading day
         """
-        next_day = date_ + timedelta(days=1)
+        next_day = date_obj + timedelta(days=1)
         while not self.is_trading_day(next_day):
             next_day += timedelta(days=1)
         return next_day

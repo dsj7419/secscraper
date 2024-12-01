@@ -5,7 +5,7 @@ Service for managing earnings data collection and analysis.
 import asyncio
 from datetime import datetime
 from decimal import Decimal
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, cast
 
 from config.settings import get_settings
 from src.clients.nasdaq_client import NASDAQClient
@@ -77,7 +77,8 @@ class EarningsService:
                     continue
 
                 # Parse report date and time
-                report_date = datetime.strptime(row.get("date", ""), "%Y-%m-%d")
+                date_str = cast(str, row.get("date", ""))
+                report_date = datetime.strptime(date_str, "%Y-%m-%d")
 
                 time_str = row.get("time", "")
                 if time_str:
@@ -137,12 +138,12 @@ class EarningsService:
         return reports
 
     @log_execution_time(logger)
-    async def fetch_daily_earnings(self, date: datetime) -> List[EarningsReport]:
+    async def fetch_daily_earnings(self, date_obj: datetime) -> List[EarningsReport]:
         """
         Fetch and store earnings for a specific date.
 
         Args:
-            date: Date to fetch earnings for
+            date_obj: Date to fetch earnings for
 
         Returns:
             List[EarningsReport]: Processed earnings reports
@@ -151,22 +152,24 @@ class EarningsService:
             APIError: If NASDAQ API request fails
             StorageError: If storage operation fails
         """
-        if not self.trading_calendar.is_trading_day(date):
-            logger.info(f"{date.date()} is not a trading day")
+        # Convert datetime to date for trading calendar check
+        check_date = date_obj.date()
+        if not self.trading_calendar.is_trading_day(check_date):
+            logger.info(f"{check_date} is not a trading day")
             return []
 
         async with self._processing_lock:
             try:
-                # Get earnings data
-                raw_data = await self.nasdaq_client.get_earnings_calendar(date)
+                # Get earnings data using date object
+                raw_data = await self.nasdaq_client.get_earnings_calendar(check_date)
                 reports = await self._process_earnings_data(raw_data)
 
                 # Store reports
                 for report in reports:
-                    await self.repository.add_daily_report(date, report)
+                    await self.repository.add_daily_report(date_obj, report)
 
                 logger.info(
-                    f"Processed {len(reports)} earnings reports for {date.date()}"
+                    f"Processed {len(reports)} earnings reports for {check_date}"
                 )
                 return reports
 
@@ -191,7 +194,7 @@ class EarningsService:
         Returns:
             Dict[datetime, int]: Number of reports processed per date
         """
-        results = {}
+        results: Dict[datetime, int] = {}
         current_date = start_date
 
         while current_date <= end_date:
@@ -202,7 +205,9 @@ class EarningsService:
                 logger.error(f"Failed to process {current_date.date()}: {str(e)}")
                 results[current_date] = 0
 
-            current_date = self.trading_calendar.next_trading_day(current_date)
+            # Get next trading day as datetime at start of day
+            next_date = self.trading_calendar.next_trading_day(current_date.date())
+            current_date = datetime.combine(next_date, datetime.min.time())
 
         return results
 
@@ -237,5 +242,7 @@ class EarningsService:
         """
         all_missing = await self.repository.get_missing_dates(start_date, end_date)
         return [
-            date for date in all_missing if self.trading_calendar.is_trading_day(date)
+            date
+            for date in all_missing
+            if self.trading_calendar.is_trading_day(date.date())
         ]

@@ -4,7 +4,7 @@ Earnings data repository implementation.
 
 from datetime import datetime
 from pathlib import Path
-from typing import List, Optional
+from typing import List, Optional, Set
 
 import pandas as pd
 
@@ -140,12 +140,18 @@ class EarningsRepository(TimeRangeCSVRepository[EarningsReport]):
         Returns:
             List[datetime]: Dates with no reports
         """
-        all_dates = {
-            start_date + pd.Timedelta(days=x)
+        # Create set of dates as datetime objects
+        all_dates: Set[datetime] = {
+            datetime.combine(
+                (start_date + pd.Timedelta(days=x)).date(), datetime.min.time()
+            )
             for x in range((end_date - start_date).days + 1)
         }
 
         reports = await self.get_by_date_range(start_date, end_date)
-        report_dates = {r.report_date.date() for r in reports}
+        # Ensure consistent datetime format for comparison
+        report_dates = {
+            datetime.combine(r.report_date.date(), datetime.min.time()) for r in reports
+        }
 
         return sorted(all_dates - report_dates)
